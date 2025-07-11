@@ -1,0 +1,41 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Check for secrets in staged files
+echo "🔒 Checking for secrets..."
+if git diff --cached --name-only | xargs grep -l "PRIVATE_KEY\|SECRET\|API_KEY" 2>/dev/null; then
+  echo "❌ Warning: Possible secrets detected in staged files!"
+  echo "Please review and remove any sensitive data before committing."
+fi
+
+# Lint Solidity files
+echo "🔧 Linting Solidity files..."
+npm run lint:solidity || {
+  echo "❌ Solidity linting failed. Please fix errors before committing."
+  exit 1
+}
+
+# Format check
+echo "✨ Checking code formatting..."
+npm run format:check || {
+  echo "❌ Code formatting check failed. Run 'npm run format' to fix."
+  exit 1
+}
+
+# Type check
+echo "📝 Running TypeScript type check..."
+npm run type-check || {
+  echo "❌ TypeScript type check failed. Please fix type errors."
+  exit 1
+}
+
+# Lint JavaScript/TypeScript
+echo "🔍 Linting JavaScript/TypeScript..."
+npm run lint || {
+  echo "❌ ESLint failed. Please fix linting errors."
+  exit 1
+}
+
+echo "✅ All pre-commit checks passed!"
