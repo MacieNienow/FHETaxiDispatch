@@ -1,0 +1,7 @@
+{
+  "PauserSet": "0x23903e691644780737F7ac079C58C5B76195Bcdd",
+  "TaxiGateway": "0x79d6742b1Bf62452bfcBC6b137ed4eA1ba459a6B",
+  "PrivateTaxiDispatch": "0x9e77F5121215474e473401E9768a517DAFde1f87",
+  "network": "sepolia",
+  "chainId": "11155111"
+}

@@ -1,0 +1,25 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="192" height="192" rx="24" fill="#667eea"/>
+
+  <!-- Taxi icon -->
+  <g transform="translate(48, 48)">
+    <!-- Car body -->
+    <rect x="20" y="60" width="80" height="40" rx="8" fill="white"/>
+
+    <!-- Car roof -->
+    <rect x="35" y="40" width="50" height="25" rx="5" fill="white"/>
+
+    <!-- Windows -->
+    <rect x="25" y="45" width="20" height="15" rx="2" fill="#667eea"/>
+    <rect x="75" y="45" width="20" height="15" rx="2" fill="#667eea"/>
+
+    <!-- Wheels -->
+    <circle cx="35" cy="105" r="8" fill="#333"/>
+    <circle cx="85" cy="105" r="8" fill="#333"/>
+
+    <!-- Taxi sign -->
+    <rect x="45" y="25" width="30" height="12" rx="2" fill="#ffd700"/>
+    <text x="60" y="33" text-anchor="middle" font-family="Arial" font-size="8" fill="black">TAXI</text>
+  </g>
+</svg>
