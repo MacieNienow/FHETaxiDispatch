@@ -1,0 +1,44 @@
+codecov:
+  require_ci_to_pass: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 1%
+        base: auto
+        flags:
+          - smart-contracts
+        paths:
+          - "contracts/"
+
+    patch:
+      default:
+        target: 85%
+        threshold: 2%
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
+
+ignore:
+  - "test/"
+  - "scripts/"
+  - "node_modules/"
+  - "artifacts/"
+  - "cache/"
+  - "typechain-types/"
+  - ".next/"
+  - "coverage/"
+
+flags:
+  smart-contracts:
+    paths:
+      - contracts/
+    carryforward: true
