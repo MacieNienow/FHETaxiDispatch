@@ -3,16 +3,12 @@ pragma solidity ^0.8.24;
 
 import { FHE, euint32, euint8, ebool } from "@fhevm/solidity/lib/FHE.sol";
 import { SepoliaConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
-import "./TaxiGateway.sol";
 
 contract PrivateTaxiDispatch is SepoliaConfig {
 
     address public dispatcher;
     uint32 public requestCounter;
     uint32 public driverCounter;
-
-    // Gateway integration for pause control
-    TaxiGateway public gateway;
 
     struct EncryptedLocation {
         euint32 latitude;
@@ -81,50 +77,14 @@ contract PrivateTaxiDispatch is SepoliaConfig {
         _;
     }
 
-    constructor(address _gatewayAddress) {
+    constructor() {
         dispatcher = msg.sender;
         requestCounter = 0;
         driverCounter = 0;
-
-        if (_gatewayAddress != address(0)) {
-            gateway = TaxiGateway(_gatewayAddress);
-        }
-    }
-
-    /**
-     * @dev Set or update gateway contract address
-     * @param _gatewayAddress Address of the TaxiGateway contract
-     */
-    function setGateway(address _gatewayAddress) external onlyDispatcher {
-        require(_gatewayAddress != address(0), "Invalid gateway address");
-        gateway = TaxiGateway(_gatewayAddress);
-    }
-
-    /**
-     * @dev Check if operations are allowed (not paused by gateway)
-     */
-    modifier whenOperational() {
-        if (address(gateway) != address(0)) {
-            require(gateway.isOperational(), "System paused by gateway");
-        }
-        _;
-    }
-
-    /**
-     * @dev Rerandomize encrypted value for sIND-CPAD security
-     * Note: Rerandomization is now handled automatically by the FHE library
-     * This function is kept for compatibility but simply returns the value
-     * @param _value Encrypted value to rerandomize
-     * @return euint32 The encrypted value (rerandomization is automatic)
-     */
-    function rerandomize(euint32 _value) internal pure returns (euint32) {
-        // Rerandomization is performed transparently by the FHE library
-        // Modern FHE implementations handle this automatically
-        return _value;
     }
 
     // Register as a taxi driver
-    function registerDriver() external whenOperational {
+    function registerDriver() external {
         require(!drivers[msg.sender].isRegistered, "Already registered");
 
         drivers[msg.sender] = TaxiDriver({
@@ -153,7 +113,7 @@ contract PrivateTaxiDispatch is SepoliaConfig {
     }
 
     // Update driver's encrypted location
-    function updateLocation(uint32 _latitude, uint32 _longitude) external onlyRegisteredDriver whenOperational {
+    function updateLocation(uint32 _latitude, uint32 _longitude) external onlyRegisteredDriver {
         euint32 encLat = FHE.asEuint32(_latitude);
         euint32 encLng = FHE.asEuint32(_longitude);
 
@@ -182,7 +142,7 @@ contract PrivateTaxiDispatch is SepoliaConfig {
         uint32 _destLat,
         uint32 _destLng,
         uint32 _maxFare
-    ) external whenOperational {
+    ) external {
         requestCounter++;
 
         euint32 pickupLatEnc = FHE.asEuint32(_pickupLat);
@@ -233,7 +193,7 @@ contract PrivateTaxiDispatch is SepoliaConfig {
         uint32 _requestId,
         uint32 _proposedFare,
         uint32 _estimatedTime
-    ) external onlyRegisteredDriver validRequest(_requestId) whenOperational {
+    ) external onlyRegisteredDriver validRequest(_requestId) {
         require(drivers[msg.sender].isAvailable, "Driver not available");
         require(requests[_requestId].assignedDriver == address(0), "Request already assigned");
 
@@ -367,88 +327,9 @@ contract PrivateTaxiDispatch is SepoliaConfig {
         return (requestCounter, driverCounter);
     }
 
-    /**
-     * @dev Check if a driver is eligible to submit an offer
-     * @param _driverAddress Address of the driver
-     * @param _requestId Request ID to check
-     * @return bool True if driver can submit offer
-     */
-    function isDriverEligibleForOffer(address _driverAddress, uint32 _requestId) external view returns (bool) {
-        if (!drivers[_driverAddress].isRegistered) return false;
-        if (!drivers[_driverAddress].isAvailable) return false;
-        if (_requestId == 0 || _requestId > requestCounter) return false;
-        if (requests[_requestId].isCompleted || requests[_requestId].isCancelled) return false;
-        if (requests[_requestId].assignedDriver != address(0)) return false;
-        return true;
-    }
-
-    /**
-     * @dev Check if a ride request is active
-     * @param _requestId Request ID to check
-     * @return bool True if request is active
-     */
-    function isRequestActive(uint32 _requestId) external view returns (bool) {
-        if (_requestId == 0 || _requestId > requestCounter) return false;
-        if (requests[_requestId].isCompleted || requests[_requestId].isCancelled) return false;
-        return true;
-    }
-
-    /**
-     * @dev Check if a driver is registered and available
-     * @param _driverAddress Address of the driver
-     * @return bool True if driver is registered and available
-     */
-    function isDriverAvailable(address _driverAddress) external view returns (bool) {
-        return drivers[_driverAddress].isRegistered && drivers[_driverAddress].isAvailable;
-    }
-
-    /**
-     * @dev Check if an address is a registered driver
-     * @param _address Address to check
-     * @return bool True if address is registered as driver
-     */
-    function isRegisteredDriver(address _address) external view returns (bool) {
-        return drivers[_address].isRegistered;
-    }
-
-    /**
-     * @dev Check if a passenger can cancel a request
-     * @param _passengerAddress Passenger address
-     * @param _requestId Request ID
-     * @return bool True if passenger can cancel
-     */
-    function isRequestCancellable(address _passengerAddress, uint32 _requestId) external view returns (bool) {
-        if (_requestId == 0 || _requestId > requestCounter) return false;
-        if (requests[_requestId].passenger != _passengerAddress) return false;
-        if (requests[_requestId].isCompleted || requests[_requestId].isCancelled) return false;
-        if (requests[_requestId].assignedDriver != address(0)) return false;
-        return true;
-    }
-
-    /**
-     * @dev Check if the system is operational (gateway check)
-     * @return bool True if system is operational
-     */
-    function isSystemOperational() external view returns (bool) {
-        if (address(gateway) == address(0)) return true;
-        return gateway.isOperational();
-    }
-
-    /**
-     * @dev Get gateway address
-     * @return address Address of the gateway contract
-     */
-    function getGatewayAddress() external view returns (address) {
-        return address(gateway);
-    }
-
     // Emergency function to pause system (dispatcher only)
     function emergencyPause() external onlyDispatcher {
         // Implementation for emergency pause
-        // This is now handled by the gateway contract
-        // Dispatcher can only pause through gateway if authorized
-        if (address(gateway) != address(0)) {
-            revert("Use gateway pause function");
-        }
+        // This could disable new requests and offers
     }
 }
