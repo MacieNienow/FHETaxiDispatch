@@ -74,16 +74,19 @@ FHE allows computations to be performed directly on encrypted data without ever 
 
 ## ✨ Features
 
-- 🔐 **Encrypted Driver Locations**: GPS coordinates protected with FHE (euint64)
+- 🔐 **Encrypted Driver Locations**: GPS coordinates protected with FHE (euint32)
 - 🚗 **Anonymous Ride Matching**: Distance-based matching without revealing locations
 - 💰 **Confidential Pricing**: Encrypted fare calculations and offers
 - ⭐ **Private Ratings**: Driver ratings computed on encrypted data
+- 📦 **Universal SDK Integration**: `@fhevm/sdk` for simplified FHE operations
+- 🪝 **React Hooks Support**: `useFhevm`, `useEncrypt` for easy integration
 - 🛡️ **Emergency Circuit Breaker**: PauserSet contract for safety controls
 - 💼 **Web3 Wallet Integration**: RainbowKit for seamless connections
 - 📊 **Real-time Transaction History**: Encrypted data tracking
-- ⚡ **Performance Optimized**: 48% bundle size reduction with code splitting
+- ⚡ **Performance Optimized**: Vite for fast builds, HMR, and optimized bundles
 - 🧪 **Comprehensive Testing**: 92 test cases with 90%+ coverage
 - 🔄 **CI/CD Automation**: GitHub Actions with security audits
+- 🎨 **Modern UI**: Tab-based interface for drivers, passengers, and ride management
 
 ---
 
@@ -91,8 +94,8 @@ FHE allows computations to be performed directly on encrypted data without ever 
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                Frontend (Next.js 14)                         │
-│  ├── Client-side FHE encryption (fhevmjs)                    │
+│         Frontend (React 18 + Vite / Next.js 14)             │
+│  ├── Client-side FHE encryption (@fhevm/sdk)                │
 │  ├── RainbowKit wallet integration                           │
 │  ├── Wagmi v2 + Viem for Web3 interactions                   │
 │  └── Real-time encrypted data display                        │
@@ -230,33 +233,38 @@ fhe-taxi-dispatch/
 │   ├── PrivateTaxiDispatch.sol
 │   ├── TaxiGateway.sol
 │   └── PauserSet.sol
-├── app/                      # Next.js App Router
+├── PrivateTaxiDispatch/      # Main React Application (Vite)
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   │   ├── DriverTab.tsx        # Driver registration & location
+│   │   │   ├── PassengerTab.tsx     # Ride requests
+│   │   │   ├── OffersTab.tsx        # Offer management
+│   │   │   ├── ManagementTab.tsx    # Ride lifecycle
+│   │   │   ├── InfoTab.tsx          # Statistics & history
+│   │   │   └── StatusTab.tsx        # Connection status
+│   │   ├── App.tsx           # Main application
+│   │   ├── main.tsx          # Entry point
+│   │   ├── config.ts         # Contract & FHEVM config
+│   │   ├── types.ts          # TypeScript definitions
+│   │   └── wagmi-config.ts   # Wagmi configuration
+│   ├── public/               # Static assets
+│   ├── contracts/            # Contract ABIs & source
+│   ├── vite.config.ts        # Vite configuration
+│   └── package.json          # Dependencies with @fhevm/sdk
+├── app/                      # Alternative Next.js App Router (optional)
 │   ├── layout.tsx           # Root layout
 │   ├── page.tsx             # Home page
 │   ├── providers.tsx        # Web3 providers
 │   └── globals.css          # Global styles
-├── components/              # React components
-│   ├── ui/                  # Base UI components
-│   └── TransactionHistory.tsx
-├── config/                  # Configuration
-│   ├── contracts.ts         # Contract ABIs & addresses
-│   └── wagmi.ts             # Wagmi configuration
-├── hooks/                   # Custom React hooks
-│   ├── useContract.ts       # Contract interactions
-│   └── useTransactionHistory.ts
-├── lib/                     # Utilities
-│   ├── types.ts            # TypeScript types
-│   └── utils.ts            # Helper functions
-├── test/                    # Test suite (92 tests)
+├── test/                     # Test suite (92 tests)
 │   ├── PrivateTaxiDispatch.test.js
 │   ├── TaxiGateway.test.js
 │   └── PauserSet.test.js
-├── scripts/                 # Deployment scripts
-├── .github/workflows/       # CI/CD pipeline
+├── scripts/                  # Deployment scripts
+├── .github/workflows/        # CI/CD pipeline
 │   └── test.yml
-├── hardhat.config.ts        # Hardhat configuration
-├── next.config.mjs          # Next.js configuration
-└── package.json             # Dependencies
+├── hardhat.config.ts         # Hardhat configuration
+└── package.json              # Monorepo dependencies
 ```
 
 ---
@@ -307,13 +315,41 @@ NEXT_PUBLIC_BLOCK_EXPLORER_URL=https://sepolia.etherscan.io
 
 ### Run Development Server
 
+**Option 1: React + Vite Application (Recommended)**
+
 ```bash
+# Navigate to React application
+cd PrivateTaxiDispatch
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Open [http://localhost:3002](http://localhost:3002)
+
+**Option 2: Next.js Application (Alternative)**
+
+```bash
+# From project root
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
 
 ### Build for Production
+
+**React + Vite:**
+
+```bash
+cd PrivateTaxiDispatch
+npm run build
+npm run preview
+```
+
+**Next.js:**
 
 ```bash
 npm run build
@@ -348,21 +384,53 @@ euint64 private encryptedDistance;
 
 #### Frontend Encryption
 
+**Using @fhevm/sdk (Recommended - React):**
+
 ```typescript
-import { createInstance } from 'fhevmjs';
+import { useFhevm, useEncrypt } from '@fhevm/sdk/react';
+
+function DriverComponent() {
+  const { isReady } = useFhevm({
+    gatewayAddress: '0x79d6742b1Bf62452bfcBC6b137ed4eA1ba459a6B',
+    chainId: 11155111,
+  });
+
+  const { encrypt, isEncrypting } = useEncrypt('euint32');
+
+  const updateLocation = async (latitude: number, longitude: number) => {
+    // Scale coordinates for precision
+    const latInt = Math.floor(latitude * 10000);
+    const lonInt = Math.floor(longitude * 10000);
+
+    // Encrypt using SDK hooks
+    const [encLat, encLon] = await Promise.all([
+      encrypt(latInt),
+      encrypt(lonInt),
+    ]);
+
+    // Submit to contract
+    await contract.write.updateLocation([encLat.data, encLon.data]);
+  };
+}
+```
+
+**Using @fhevm/sdk (Vanilla - Node.js/Browser):**
+
+```typescript
+import { createFhevmInstance, encryptValue } from '@fhevm/sdk';
 
 // Initialize FHEVM
-const instance = await createInstance({
+const fhevm = await createFhevmInstance({
+  gatewayAddress: '0x79d6742b1Bf62452bfcBC6b137ed4eA1ba459a6B',
   chainId: 11155111,
-  publicKeyVerifier: gatewayAddress,
 });
 
 // Encrypt location
-const encryptedLat = instance.encrypt64(latitude);
-const encryptedLon = instance.encrypt64(longitude);
+const encryptedLat = await encryptValue(latitude * 10000, 'euint32');
+const encryptedLon = await encryptValue(longitude * 10000, 'euint32');
 
 // Submit to contract
-await contract.write.registerDriver([encryptedLat, encryptedLon]);
+await contract.write.registerDriver([encryptedLat.data, encryptedLon.data]);
 ```
 
 ---
@@ -473,7 +541,18 @@ See [SECURITY_AND_PERFORMANCE.md](./SECURITY_AND_PERFORMANCE.md) for detailed do
 - **Linting**: Solhint
 - **Gas Reporting**: hardhat-gas-reporter
 
-### Frontend
+### Frontend (Main Application)
+
+- **Framework**: React 18 + Vite 5
+- **Language**: TypeScript 5.6
+- **FHE SDK**: `@fhevm/sdk` (Universal FHEVM SDK)
+- **Web3**: Wagmi v2.12 + Viem v2.21
+- **Wallet**: RainbowKit v2.1
+- **State Management**: TanStack React Query v5
+- **Icons**: Lucide React
+- **Build Tool**: Vite (fast HMR, optimized builds)
+
+### Alternative Frontend (Next.js)
 
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
@@ -606,4 +685,24 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 
 ---
 
-> **Note**: This is a demonstration project for the Zama FHE Bounty Challenge. The system showcases privacy-preserving ride-sharing with encrypted locations and confidential pricing. Additional security audits recommended before production use with real users.
+## 📝 Recent Updates
+
+### Version 2.0 - React + Vite Migration
+
+The main application has been migrated from vanilla JavaScript to **React 18 + Vite** with full **@fhevm/sdk** integration:
+
+**What's New:**
+- ✅ Modern React architecture with TypeScript
+- ✅ Universal FHEVM SDK (`@fhevm/sdk`) with React hooks
+- ✅ Component-based UI with 6 functional tabs (Driver, Passenger, Offers, Management, Info, Status)
+- ✅ Vite build system for faster development and optimized production builds
+- ✅ Full Wagmi v2 + RainbowKit v2 wallet integration
+- ✅ Improved developer experience with HMR and TypeScript support
+
+**Legacy Support:**
+- The original vanilla JavaScript version is preserved in `PrivateTaxiDispatch/public/legacy/`
+- Next.js alternative remains available in the `app/` directory
+
+---
+
+> **Note**: This is a demonstration project for the Zama FHE Bounty Challenge. The system showcases privacy-preserving ride-sharing with encrypted locations and confidential pricing. The main application now uses the modern **@fhevm/sdk** for simplified FHE operations. Additional security audits recommended before production use with real users.
