@@ -11,6 +11,9 @@
 
 A production-ready implementation demonstrating advanced privacy-preserving applications using Zama FHEVM with innovative features including Gateway callback mode, automatic refund mechanisms, and timeout protection.
 
+Live Demo: https://fhe-taxi-dispatch.vercel.app/
+ 
+
 ---
 
 ## 🌐 Network Information
